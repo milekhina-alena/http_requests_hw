@@ -1,34 +1,39 @@
+import os
 import requests
-from pprint import pprint
-
+import json
 
 class YaUploader:
-    def __init__(self, token):
+    def __init__(self, token: str):
         self.token = token
 
     def get_headers(self):
         return {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'Authorization': f'OAuth {self.token}'
         }
 
-    def _get_upload_link(self, file_path):
-        upload_url = 'https://cloud-api.yandex.net/v1/disk/resources/upload'
+    def _create_folder(self, folder_name):
+        url = 'https://cloud-api.yandex.net/v1/disk/resources'
         headers = self.get_headers()
-        params = {'path': file_path, 'overwrite': True}
-        response = requests.get(upload_url, headers=headers, params=params)
-        return response.json()
+        requests.put(f'{url}?path={folder_name}', headers=headers)
+        
 
     def upload(self, file_path):
-        href = self._get_upload_link(file_path=file_path).get('href', '')
+        headers = self.get_headers()
+        url = 'https://cloud-api.yandex.net/v1/disk/resources'
+        self._create_folder('Downloads')
+        file_name = os.path.basename(file_path)
+        result = requests.get(f'{url}/upload?path=Downloads/{file_name}&overwrite={False}', headers=headers).json()
         with open(file_path, 'rb') as file:
-            requests.put(href, files={'file': file})
+            try:
+                requests.put(result['href'], files={'file': file})
+            except KeyError:
+                print(result)
 
-my_token = 'y0_AgAAAAA8HMbLAAh6dQAAAADQrn3L4JugKVPGS1-uQCFLfKLxhqG5JRU'
 
 if __name__ == '__main__':
-    # Получить путь к загружаемому файлу и токен от пользователя
-    path_to_file = 'files/practice.txt'
-    token = my_token
+    file_path = 'files/practice.txt'
+    token = ''
     uploader = YaUploader(token)
-    result = uploader.upload(path_to_file)
+    uploader.upload(file_path)
